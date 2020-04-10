@@ -90,6 +90,18 @@ app.delete('/api/songs/:id', async (req, res) => {
 	}
 });
 
+app.delete('/api/notes/:id', async (req, res) => {
+	try {
+		await Note.deleteOne({
+			_id: req.params.id
+		});
+		res.sendStatus(200);
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
+
 app.put('/api/songs/:id', async (req, res) => {
 	try {
 		let song = await Song.findOne({
@@ -105,6 +117,20 @@ app.put('/api/songs/:id', async (req, res) => {
 	}
 });
 
+app.put('/api/notes/:id', async (req, res) => {
+	try {
+		let note = await Note.findOne({
+			_id: req.params.id
+		});
+		note.name = req.body.name;
+		note.beat = req.body.beat;
+		note.save();
+		res.sendStatus(200);
+	} catch (error) {
+		console.log(error);
+		res.sendStatus(500);
+	}
+});
 
 
 app.listen(3000, () => console.log('Server listening on port 3000!'));

@@ -24,16 +24,16 @@
 						<hr/>
 						<hr/>
 					</div>
-					<div v-bind:class="{'note': true, 'selected': (note._id == editNoteID)}" v-bind:style="{ 'top': (35 + ('f'.charCodeAt(0) - note.name.charCodeAt(0)) * 9 + (5 - note.name.charAt(1)) * 63).toString() + 'px', 'left': (25 + note.beat * 50).toString() + 'px'}" v-for="note in song.notes" :key="note._id"></div>
+					<div v-bind:class="{'note': true, 'selected': (note._id == editNote._id)}" v-bind:style="{ 'top': (35 + ('f'.charCodeAt(0) - note.name.charCodeAt(0)) * 9 + (5 - note.name.charAt(1)) * 63).toString() + 'px', 'left': (25 + note.beat * 50).toString() + 'px'}" v-for="note in song.notes" :key="note._id"></div>
 				</div>
 			</div>
 			<button v-on:click="play(song)">Play</button>
 			<button v-on:click="stop(song)">Stop</button>
-			<button v-on:click="noteUp()" :disabled="!song.notes.find(x => x._id == editNoteID)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNoteID)}" style="margin-left: auto;">Up</button>
-			<button v-on:click="noteDown()" :disabled="!song.notes.find(x => x._id == editNoteID)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNoteID)}">Down</button>
-			<button v-on:click="noteLeft()" :disabled="!song.notes.find(x => x._id == editNoteID)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNoteID)}">Left</button>
-			<button v-on:click="noteRight()" :disabled="!song.notes.find(x => x._id == editNoteID)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNoteID)}">Right</button>
-			<button v-on:click="deleteNote()" :disabled="!song.notes.find(x => x._id == editNoteID)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNoteID)}">Delete</button>
+			<button v-on:click="noteUp()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="margin-left: auto;">Up</button>
+			<button v-on:click="noteDown()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Down</button>
+			<button v-on:click="noteLeft()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Left</button>
+			<button v-on:click="noteRight()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Right</button>
+			<button v-on:click="deleteNote()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Delete</button>
 		</div>
 	</div>
 	<div class="note" id="targetNote"></div>
@@ -197,16 +197,38 @@ export default {
 		return {
 			songs: [],
 			mousePos: '',
-			editSongIndex: 0,
-			editBeat: 0,
-			editNoteName: '',
-			editNoteID: '',
+			targetSongIndex: 0,
+			targetBeat: 0,
+			targetNoteName: '',
+			editNote: '',
 		}
 	},
 	created() {
 		this.getSongs();
 		this.getNotes();
 		window.addEventListener("mousemove", this.moveTarget);
+		window.addEventListener("keydown", event => {
+			if (event.code == "ArrowUp") {
+				event.preventDefault();
+				this.noteUp();
+			}
+			else if (event.code == "ArrowDown") {
+				event.preventDefault();
+				this.noteDown();
+			}
+			else if (event.code == "ArrowLeft") {
+				event.preventDefault();
+				this.noteLeft();
+			}
+			else if (event.code == "ArrowRight") {
+				event.preventDefault();
+				this.noteRight();
+			}
+			else if (event.code == "Delete" || event.code == "Backspace") {
+				event.preventDefault();
+				this.deleteNote();
+			}
+		});
 	},
 	methods: {
 		async getSongs() {
@@ -241,6 +263,7 @@ export default {
 			try {
 				await axios.delete("/api/songs/" + song._id);
 				this.songs = this.songs.filter( x => x._id != song._id);
+				this.editNote = '';
 				return true;
 			} catch (error) {
 				console.log(error);
@@ -261,45 +284,45 @@ export default {
 			if (e.type == "mousemove") {
 				this.mousePos = {x: e.pageX, y: e.pageY};
 			}
-			if ((this.mousePos.y - 154) % 285 < 170 && this.mousePos.y >= 154 && this.mousePos.x > 30 && this.mousePos.x < document.body.clientWidth - 30) {
+			if (Math.floor((this.mousePos.y - 154) / 285) < this.songs.length && (this.mousePos.y - 154) % 285 < 170 && this.mousePos.y >= 154 && this.mousePos.x > 30 && this.mousePos.x < document.body.clientWidth - 30) {
 				document.getElementById("targetNote").style.visibility = "visible";
-				this.editSongIndex = Math.floor((this.mousePos.y - 154) / 285);
+				this.targetSongIndex = Math.floor((this.mousePos.y - 154) / 285);
 
 				//set vertical note position and note name
 				var mouseY = (this.mousePos.y - 154) % 285;
 				if (mouseY < 43) {
-					this.mousePos.y = 154 + this.editSongIndex * 285 + 38;
-					this.editNoteName = 'f5';
+					this.mousePos.y = 154 + this.targetSongIndex * 285 + 38;
+					this.targetNoteName = 'f5';
 				}
 				else if (mouseY > 105) {
-					this.mousePos.y = 154 + this.editSongIndex * 285 + 109;
-					this.editNoteName = 'e4';
+					this.mousePos.y = 154 + this.targetSongIndex * 285 + 109;
+					this.targetNoteName = 'e4';
 				}
 				else {
-					this.mousePos.y = 192 + this.editSongIndex * 285 + Math.floor((mouseY - 33) / 9) * 9;
-					this.editNoteName = String.fromCharCode('f'.charCodeAt(0) - Math.floor((mouseY - 33) / 9)) + '5';
-					if (this.editNoteName.charAt(0) < 'a') {
-						this.editNoteName = String.fromCharCode(this.editNoteName.charCodeAt(0) + 7) + '4';
+					this.mousePos.y = 192 + this.targetSongIndex * 285 + Math.floor((mouseY - 33) / 9) * 9;
+					this.targetNoteName = String.fromCharCode('f'.charCodeAt(0) - Math.floor((mouseY - 33) / 9)) + '5';
+					if (this.targetNoteName.charAt(0) < 'a') {
+						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) + 7) + '4';
 					}
-					else if (this.editNoteName > 'f') {
-						this.editNoteName = String.fromCharCode(this.editNoteName.charCodeAt(0) - 7) + '5';
+					else if (this.targetNoteName > 'f') {
+						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) - 7) + '5';
 					}
 				}
 				document.getElementById("targetNote").style.top = this.mousePos.y.toString() + "px";
 
 				//set horizontal note position and note beat
-				var scrollX = document.getElementsByClassName("song-box")[this.editSongIndex].scrollLeft;
+				var scrollX = document.getElementsByClassName("song-box")[this.targetSongIndex].scrollLeft;
 				var mouseX = this.mousePos.x + scrollX - 135;
-				this.editBeat = Math.floor(mouseX / 50) + 1;
-				if (this.editBeat < 1) {
-					this.editBeat = 1;
+				this.targetBeat = Math.floor(mouseX / 50) + 1;
+				if (this.targetBeat < 1) {
+					this.targetBeat = 1;
 				}
-				else if (this.editBeat > this.songs[this.editSongIndex].numMeasures * 4) {
-					this.editBeat = this.songs[this.editSongIndex].numMeasures * 4;
+				else if (this.targetBeat > this.songs[this.targetSongIndex].numMeasures * 4) {
+					this.targetBeat = this.songs[this.targetSongIndex].numMeasures * 4;
 				}
-				mouseX = 110 - scrollX + this.editBeat * 50;
+				mouseX = 110 - scrollX + this.targetBeat * 50;
 				if (mouseX > 30 && mouseX < document.body.clientWidth - 30) {
-					document.getElementById("targetNote").style.left = (110 - scrollX + this.editBeat * 50).toString() + "px";
+					document.getElementById("targetNote").style.left = (110 - scrollX + this.targetBeat * 50).toString() + "px";
 				}
 				else {
 					document.getElementById("targetNote").style.visibility = "hidden";
@@ -312,27 +335,121 @@ export default {
 		async addNote() {
 			try {
 				var note = {
-					name: this.editNoteName,
-					beat: this.editBeat,
-					songID: this.songs[this.editSongIndex]._id,
+					name: this.targetNoteName,
+					beat: this.targetBeat,
+					songID: this.songs[this.targetSongIndex]._id,
 				};
-				var editNote = this.songs[this.editSongIndex].notes.find(x => x.name == this.editNoteName && x.beat == this.editBeat);
-				if (editNote) {
-					this.editNoteID = editNote._id;
+				var targetNote = this.songs[this.targetSongIndex].notes.find(x => x.name == this.targetNoteName && x.beat == this.targetBeat);
+				if (targetNote) {
+					this.editNote = targetNote;
 				}
 				else {
 					var response = await axios.post("/api/notes/", note);
-					this.songs[this.editSongIndex].notes.push(response.data);
-					this.editNoteID = response.data._id;
+					this.songs[this.targetSongIndex].notes.push(response.data);
+					this.editNote = response.data;
 				}
 				return true;
 			} catch (error) {
 				console.log(error);
 			}
 		},
-		noteUp() {
-			console.log("worked");
+		async noteUp() {
+			try {
+				if (this.editNote != '') {
+					var newName = String.fromCharCode(this.editNote.name.charCodeAt(0) + 1);
+					if (newName.charAt(0) > 'g') {
+						newName = String.fromCharCode(newName.charCodeAt(0) - 7) + (this.editNote.name.charAt(1) * 1 + 1).toString();
+					}
+					else {
+						newName += this.editNote.name.charAt(1);
+					}
+					if (newName.charAt(1) > '5' || (newName.charAt(1) == '5' && newName.charAt(0) > 'f')) {
+						newName = 'f5';
+					}
+					this.editNote.name = newName;
+					await axios.put("/api/notes/" + this.editNote._id, {
+						name: newName,
+						beat: this.editNote.beat,
+					});
+				}
+				return true;
+			} catch (error) {
+				console.log(error);
+			}
 		},
+		async noteDown() {
+			try {
+				if (this.editNote != '') {
+					var newName = String.fromCharCode(this.editNote.name.charCodeAt(0) - 1);
+					if (newName.charAt(0) < 'a') {
+						newName = String.fromCharCode(newName.charCodeAt(0) + 7) + (this.editNote.name.charAt(1) * 1 - 1).toString();
+					}
+					else {
+						newName += this.editNote.name.charAt(1);
+					}
+					if (newName.charAt(1) < '4' || (newName.charAt(1) == '4' && newName.charAt(0) < 'e')) {
+						newName = 'e4';
+					}
+					this.editNote.name = newName;
+					await axios.put("/api/notes/" + this.editNote._id, {
+						name: newName,
+						beat: this.editNote.beat,
+					});
+				}
+				return true;
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		async noteLeft() {
+			try {
+				if (this.editNote != '') {
+					var newBeat = this.editNote.beat - 1;
+					if (newBeat < 1) {
+						newBeat = 1;
+					}
+					this.editNote.beat = newBeat;
+					await axios.put("/api/notes/" + this.editNote._id, {
+						name: this.editNote.name,
+						beat: newBeat,
+					});
+				}
+				return true;
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		async noteRight() {
+			try {
+				if (this.editNote != '') {
+					var newBeat = this.editNote.beat + 1;
+					if (newBeat > this.songs.find(x => x._id == this.editNote.songID).numMeasures * 4) {
+						newBeat = this.songs.find(x => x._id == this.editNote.songID).numMeasures * 4;
+					}
+					this.editNote.beat = newBeat;
+					await axios.put("/api/notes/" + this.editNote._id, {
+						name: this.editNote.name,
+						beat: newBeat,
+					});
+				}
+				return true;
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		async deleteNote() {
+			try {
+				if (this.editNote != '') {
+					await axios.delete("/api/notes/" + this.editNote._id);
+					this.songs.find(x => x._id == this.editNote.songID).notes = this.songs.find(x => x._id == this.editNote.songID).notes.filter( x => x._id != this.editNote._id);
+					this.editNote = '';
+				}
+				return true;
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		
 	},
 }
 </script>
