@@ -165,11 +165,11 @@
 }
 
 .measures {
-	height: 100%;
+	height: 107px;
 	width: auto;
 	display: flex;
 	position: relative;
-	padding: 35px 5px 38px 50px;
+	padding: 35px 5px 0 50px;
 	pointer-events: none;
 }
 
