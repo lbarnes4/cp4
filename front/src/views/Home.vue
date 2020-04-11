@@ -24,11 +24,10 @@
 						<hr/>
 						<hr/>
 					</div>
-					<div v-bind:class="{'note': true, 'selected': (note._id == editNote._id)}" v-bind:style="{ 'top': (35 + ('f'.charCodeAt(0) - note.name.charCodeAt(0)) * 9 + (5 - note.name.charAt(1)) * 63).toString() + 'px', 'left': (25 + note.beat * 50).toString() + 'px'}" v-for="note in song.notes" :key="note._id"></div>
+					<div v-bind:class="{'note': true, 'selected': (note._id == editNote._id)}" v-bind:style="{ 'top': (35 + ('f'.charCodeAt(0) - note.name.charCodeAt(0)) * 9 + (note.name.charAt(0) <= 'b' && note.name.charAt(1) == 4 ? 0 : 5 - note.name.charAt(1)) * 63).toString() + 'px', 'left': (25 + note.beat * 50).toString() + 'px'}" v-for="note in song.notes" :key="note._id"></div>
 				</div>
 			</div>
 			<button v-on:click="play(song)">Play</button>
-			<button v-on:click="stop(song)">Stop</button>
 			<button v-on:click="noteUp()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="margin-left: auto;">Up</button>
 			<button v-on:click="noteDown()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Down</button>
 			<button v-on:click="noteLeft()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Left</button>
@@ -190,6 +189,7 @@ button {
 <script>
 // @ is an alias to /src
 import axios from 'axios';
+import * as Tone from "tone";
 
 export default {
 	name: 'MelodyLibrary',
@@ -217,15 +217,12 @@ export default {
 				this.noteDown();
 			}
 			else if (event.code == "ArrowLeft") {
-				event.preventDefault();
 				this.noteLeft();
 			}
 			else if (event.code == "ArrowRight") {
-				event.preventDefault();
 				this.noteRight();
 			}
 			else if (event.code == "Delete" || event.code == "Backspace") {
-				event.preventDefault();
 				this.deleteNote();
 			}
 		});
@@ -300,12 +297,18 @@ export default {
 				}
 				else {
 					this.mousePos.y = 192 + this.targetSongIndex * 285 + Math.floor((mouseY - 33) / 9) * 9;
-					this.targetNoteName = String.fromCharCode('f'.charCodeAt(0) - Math.floor((mouseY - 33) / 9)) + '5';
+					this.targetNoteName = String.fromCharCode('f'.charCodeAt(0) - Math.floor((mouseY - 33) / 9));
 					if (this.targetNoteName.charAt(0) < 'a') {
-						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) + 7) + '4';
+						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) + 7);
 					}
 					else if (this.targetNoteName > 'f') {
-						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) - 7) + '5';
+						this.targetNoteName = String.fromCharCode(this.targetNoteName.charCodeAt(0) - 7);
+					}
+					if (mouseY > 68) {
+						this.targetNoteName += '4';
+					}
+					else {
+						this.targetNoteName += '5';
 					}
 				}
 				document.getElementById("targetNote").style.top = this.mousePos.y.toString() + "px";
@@ -358,7 +361,10 @@ export default {
 				if (this.editNote != '') {
 					var newName = String.fromCharCode(this.editNote.name.charCodeAt(0) + 1);
 					if (newName.charAt(0) > 'g') {
-						newName = String.fromCharCode(newName.charCodeAt(0) - 7) + (this.editNote.name.charAt(1) * 1 + 1).toString();
+						newName = String.fromCharCode(newName.charCodeAt(0) - 7);
+					}
+					if (newName.charAt(0) == 'c') {
+						newName += '5';
 					}
 					else {
 						newName += this.editNote.name.charAt(1);
@@ -382,12 +388,15 @@ export default {
 				if (this.editNote != '') {
 					var newName = String.fromCharCode(this.editNote.name.charCodeAt(0) - 1);
 					if (newName.charAt(0) < 'a') {
-						newName = String.fromCharCode(newName.charCodeAt(0) + 7) + (this.editNote.name.charAt(1) * 1 - 1).toString();
+						newName = String.fromCharCode(newName.charCodeAt(0) + 7);
+					}
+					if (newName.charAt(0) == 'b') {
+						newName += '4';
 					}
 					else {
 						newName += this.editNote.name.charAt(1);
 					}
-					if (newName.charAt(1) < '4' || (newName.charAt(1) == '4' && newName.charAt(0) < 'e')) {
+					if (newName.charAt(1) == '4' && newName.charAt(0) == 'd') {
 						newName = 'e4';
 					}
 					this.editNote.name = newName;
@@ -449,7 +458,44 @@ export default {
 				console.log(error);
 			}
 		},
-		
+		async play(song) {
+			try {
+				Tone.Transport.bpm.value = 100;
+				Tone.Transport.stop();
+				Tone.Transport.position = 0;
+				Tone.Transport.cancel();
+
+
+				let polySynth = new Tone.PolySynth(9,Tone.Synth).toMaster();
+				var notes = song.notes.sort((a, b) => (a.beat > b.beat) ? 1 : -1);
+				var i = 0;
+				var beat = 1;
+				var chords = [];
+				var currentNotes = [];
+				while (i < notes.length) {
+					currentNotes = [];
+					beat = notes[i].beat;
+					while (i < notes.length && notes[i].beat == beat) {
+						currentNotes.push(notes[i].name);
+						i++;
+					}
+					if (currentNotes.length > 0) {
+						chords.push({
+							notes: currentNotes,
+							beat: beat,
+						});
+					}
+				}
+				Tone.Transport.schedule(function() {
+					for (const chord of chords) {
+						polySynth.triggerAttackRelease(chord.notes,'8n',"+0:" + chord.beat);
+					}
+				}, 0);
+				Tone.Transport.start();
+			} catch (error) {
+				console.log(error);
+			}
+		}
 	},
 }
 </script>
