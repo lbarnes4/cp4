@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="wrapper">
 	<div class="header">
 		<h1>Melody Library</h1>
 		<button v-on:click="newSong" style="margin-left: auto;">New Song</button>
@@ -7,7 +7,9 @@
 	<div class="songs">
 		<div class="song" v-for="song in songs" :key="song.id">
 			<input class="song-name" v-on:input="editSong(song)" v-model="song.name" placeholder="new song">
-			<button class="delete-song" v-on:click="deleteSong(song)">Delete Song</button>
+			<p style="margin-top: 5px;">bpm</p>
+			<input class="tempo" type="number" max="300" min="60" v-on:input="editSong(song)" v-model="song.tempo" placeholder="100">
+			<button class="delete-song deleteButton" v-on:click="deleteSong(song)">Delete Song</button>
 			<button class="add-measure" v-on:click="song.numMeasures++; editSong(song);">+</button>
 			<div class="song-box" v-on:click="addNote" v-on:scroll="moveTarget">
 				<img class="clef" src="../../public/clef.png">
@@ -28,14 +30,15 @@
 				</div>
 			</div>
 			<button v-on:click="play(song)">Play</button>
-			<button v-on:click="noteUp()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="margin-left: auto;">Up</button>
-			<button v-on:click="noteDown()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Down</button>
-			<button v-on:click="noteLeft()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Left</button>
-			<button v-on:click="noteRight()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Right</button>
-			<button v-on:click="deleteNote()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}">Delete</button>
+			<button v-on:click="noteUp()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="margin-left: auto; width: 35px;"><div class="arrow-up"></div></button>
+			<button v-on:click="noteDown()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="width: 35px;"><div class="arrow-down"></div></button>
+			<button v-on:click="noteLeft()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="width: 35px;"><div class="arrow-left"></div></button>
+			<button v-on:click="noteRight()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id)}" style="width: 35px;"><div class="arrow-right"></div></button>
+			<button v-on:click="deleteNote()" :disabled="!song.notes.find(x => x._id == editNote._id)" v-bind:class="{ 'disabled' : !song.notes.find(x => x._id == editNote._id), 'deleteButton':true}" style="width: 35px; font-size: 22px;">x</button>
 		</div>
 	</div>
 	<div class="note" id="targetNote"></div>
+	<div class="footer"><a href="https://github.com/lbarnes4/cp4.git">My GitHub</a></div>
 </div>
 </template>
 
@@ -44,6 +47,70 @@
 	margin: 0;
 	padding: 0;
 	box-sizing: border-box;
+}
+
+.footer {
+	width: 100%;
+	height: 50px;
+	position: fixed;
+	bottom: 0;
+	background-image: linear-gradient(to top left, lightgreen, lightblue);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.footer a {
+	text-decoration: none;
+	color: black;
+}
+
+.footer a:hover {
+	text-decoration: underline;
+}
+
+.wrapper {
+	padding-bottom: 50px;
+}
+
+.deleteButton {
+	background-color: rgb(255, 77, 77);
+}
+
+.arrow-up {
+	width: 0; 
+	height: 0; 
+	border-left: 8px solid transparent;
+	border-right: 8px solid transparent;
+
+	border-bottom: 8px solid white;
+}
+
+.arrow-down {
+	width: 0; 
+	height: 0; 
+	border-left: 8px solid transparent;
+	border-right: 8px solid transparent;
+
+	border-top: 8px solid white;
+}
+
+.arrow-right {
+	width: 0; 
+	height: 0; 
+	border-top: 8px solid transparent;
+	border-bottom: 8px solid transparent;
+
+	border-left: 8px solid white;
+}
+
+.arrow-left {
+	width: 0; 
+	height: 0; 
+	border-top: 8px solid transparent;
+	border-bottom: 8px solid transparent; 
+
+	border-right:8px solid white; 
 }
 
 .note {
@@ -153,7 +220,7 @@
 	margin-right: auto;
 	height: 30px;
 	font-size: 25px;
-	width: calc(100% - 170px);
+	width: calc(100% - 210px);
 	border: 1px solid white;
 }
 
@@ -163,8 +230,18 @@
 	border-radius: 5px;
 }
 
+.tempo {
+	height: 30px;
+	font-size: 16px;
+	width: 50px;
+	padding-left: 4px;
+	margin-left: 5px;
+	border: 1px solid gray;
+	border-radius: 5px;
+}
+
 .header{
-	background-color: white;
+	background-image: linear-gradient(to left top, lightblue, lightgreen);
 	width: 100%;
 	height: 80px;
 	border-bottom: 2px solid black;
@@ -182,6 +259,9 @@ button {
 	border-radius: 5px;
 	color: white;
 	padding: 0 5px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
 	white-space: nowrap;
 }
 </style>
@@ -271,6 +351,7 @@ export default {
 				await axios.put("/api/songs/" + song._id, {
 					name: song.name,
 					numMeasures: song.numMeasures,
+					tempo: song.tempo,
 				});
 				return true;
 			} catch (error) {
@@ -460,7 +541,7 @@ export default {
 		},
 		async play(song) {
 			try {
-				Tone.Transport.bpm.value = 100;
+				Tone.Transport.bpm.value = song.tempo;
 				Tone.Transport.stop();
 				Tone.Transport.position = 0;
 				Tone.Transport.cancel();

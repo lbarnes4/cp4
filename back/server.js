@@ -19,6 +19,7 @@ const songSchema = new mongoose.Schema({
 	name: String,
 	notes: [noteSchema],
 	numMeasures: Number,
+	tempo: Number,
 });
 const Song = mongoose.model('Song', songSchema);
 
@@ -54,6 +55,7 @@ app.post('/api/songs', async (req, res) => {
 		name: '',
 		notes: [],
 		numMeasures: 4,
+		tempo: 100,
 	});
 	try {
 		await song.save();
@@ -109,6 +111,7 @@ app.put('/api/songs/:id', async (req, res) => {
 		});
 		song.name = req.body.name;
 		song.numMeasures = req.body.numMeasures;
+		song.tempo = req.body.tempo;
 		song.save();
 		res.sendStatus(200);
 	} catch (error) {
